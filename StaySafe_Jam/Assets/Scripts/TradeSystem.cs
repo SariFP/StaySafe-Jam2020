@@ -4,40 +4,71 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 using UnityEngine.SceneManagement;
+using UnityEngine.Video;
 
 public class TradeSystem : MonoBehaviour
 {
     public HouseObject houseObject;
+    private ButtonManagment buttonManager;
+
+    [Space(5)]
+    [Header("Backgrounds")]
+    public GameObject LevelSkeleton;
+    public GameObject DayBackground;
+    public GameObject EveningBackground;
+
+    [Space(5)]
+    [Header("DeliveryText")]
+    public GameObject DeliverText;
+
+    [Space(5)]
+    [Header("Animations")]
+    public Animator FadeScreen;
+
+    [Space(5)]
+    [Header("DeliveryVideo")]
+    public RawImage VideoRawImage;
+    public VideoPlayer videoPlayer;
+    public AudioSource videoAudio;
+    private AudioSource mainAudio;
+
+    [Space(5)]
+    [Header("Sounds")]
+    public AudioClip DeliverySound;
+    public AudioClip ClickSound;
+    public AudioClip DayBeginSound;
+    public AudioClip DayEndSound;
 
     [Space(5)]
     [Header("Canvas Panel")]
+    public Canvas HandyCanvas;
     public Canvas QuestionCanvas;
     public Canvas TradeView;
     public Canvas NeighborOverview;
     public Canvas FamilyStoryCanvas;
 
     [Space(5)]
+    [Header("FairTradeButton")]
+    public Sprite ToilettpaperIcon;
+    public Sprite HygieneIcon;
+    public Sprite FoodIcon;
+    public Image[] FairTradeButton;
+
+    [Space(5)]
     [Header("Text Fields")]
     public TMP_Text DayTimeText;
     public TMP_Text DayText;
-    [Space(5)]
-    [Header("FamilyStories")]
-    public TMP_Text[] FamilyStory;
     [Header("Description")]
     public TMP_Text[] DesTpText;
     public TMP_Text[] DesHgText;
     public TMP_Text[] DesFoodText;
     [Header("AddAmount")]
     public TMP_Text[] ToiletpaperText;
-    public TMP_Text[] HygienText;
+    public TMP_Text[] HygieneText;
     public TMP_Text[] FoodText;
-    [Header("DefaultText")]
-    public TMP_Text[] DTpText;
-    public TMP_Text[] DHgText;
-    public TMP_Text[] DFdText;
     [Space(5)]
-    [Header("Button")]
-    public TMP_Text[] ButtonText;
+    //[Header("Button")]
+    //public TMP_Text[] ButtonText;
 
 
     [Space(5)]
@@ -47,10 +78,11 @@ public class TradeSystem : MonoBehaviour
     public int House3Limit = 2;
     public int House4Limit = 2;
 
-    private bool DoTrade = false;
-    private int tradePerDay = 3;
+    //private bool DoTrade = false;
+    public int tradePerDay = 3;
     private int weekdays = 1;
     private int week = 0;
+    private int deadCount = 0;
     private int randTradeRequest;
 
     private int TpCount;
@@ -68,6 +100,7 @@ public class TradeSystem : MonoBehaviour
 
     private void Awake()
     {
+        buttonManager = GetComponent<ButtonManagment>();
         //GameObject[] manager = GameObject.FindGameObjectsWithTag("Manager");
         //if (manager.Length > 1)
         //    Destroy(this.gameObject);
@@ -84,13 +117,13 @@ public class TradeSystem : MonoBehaviour
 
     void Start()
     {
+        DayBackground.SetActive(true);
+        EveningBackground.SetActive(true);
+        mainAudio = GameObject.FindGameObjectWithTag("AudioManager").GetComponent<AudioSource>();
+        HandyCanvas.gameObject.SetActive(false);
+        DeliverText.SetActive(false);
         ChangeDay(0);
         ChangeDaytime();
-
-        QuestionCanvas.gameObject.SetActive(true);
-        TradeView.gameObject.SetActive(false);
-        NeighborOverview.gameObject.SetActive(false);
-        FamilyStoryCanvas.gameObject.SetActive(false);
 
         for (int i = 0; i <= houseObject.Ressource.Length; i++)
         {
@@ -101,7 +134,7 @@ public class TradeSystem : MonoBehaviour
     // gameplay dayroutine
     public void TradeRoutine()
     {
-        ChangeToTrade(true);
+        buttonManager.ChangeToTrade(true);
 
         if (tradePerDay > 0)
         {
@@ -121,90 +154,81 @@ public class TradeSystem : MonoBehaviour
 
 
     #region ButtonFunktionen
-    public void FamilyStoryButton(int Num)
-    {
-        FamilyStoryCanvas.gameObject.SetActive(true);
-        QuestionCanvas.gameObject.SetActive(false);
-        TradeView.gameObject.SetActive(false);
-        NeighborOverview.gameObject.SetActive(false);
-
-        switch (Num)
-        {
-            case 0:
-                FamilyStory[0].gameObject.SetActive(true);
-                FamilyStory[1].gameObject.SetActive(false);
-                FamilyStory[2].gameObject.SetActive(false);
-                FamilyStory[3].gameObject.SetActive(false);
-                break;
-            case 1:
-                FamilyStory[1].gameObject.SetActive(true);
-                FamilyStory[0].gameObject.SetActive(false);
-                FamilyStory[2].gameObject.SetActive(false);
-                FamilyStory[3].gameObject.SetActive(false);
-                break;
-            case 2:
-                FamilyStory[2].gameObject.SetActive(true);
-                FamilyStory[1].gameObject.SetActive(false);
-                FamilyStory[0].gameObject.SetActive(false);
-                FamilyStory[3].gameObject.SetActive(false);
-                break;
-            case 3:
-                FamilyStory[3].gameObject.SetActive(true);
-                FamilyStory[1].gameObject.SetActive(false);
-                FamilyStory[2].gameObject.SetActive(false);
-                FamilyStory[0].gameObject.SetActive(false);
-                break;
-            default:
-                FamilyStory[0].gameObject.SetActive(false);
-                FamilyStory[1].gameObject.SetActive(false);
-                FamilyStory[2].gameObject.SetActive(false);
-                FamilyStory[3].gameObject.SetActive(false);
-                break;
-        }
-        
-    }
-
-    public void QuestionTrade(bool trade)
-    {
-        DoTrade = trade;
-
-        if (DoTrade == true)
-        {
-            TradeRoutine();
-        }
-        if (DoTrade == false)
-        {
-            tradePerDay--;
-            ChangeDaytime();
-        }
-    }
-
+ 
     public void TradeTp(int Num)
     {
         switch (Num)
         {
             case 1:
                 houseObject.Ressource[1].Toiletpaper += Trader1[0]; //TpAmount
+                houseObject.Ressource[0].Toiletpaper -= Trader1[0];
+                //PlayerGiveRessources(Trader1[0], 0, 0);
 
-                PlayerGiveRessources(Trader1[0], 0, 0);
+                if (FairTradeButton[1].sprite == HygieneIcon)
+                {
+                    houseObject.Ressource[0].Hygiene += 1;
+                    houseObject.Ressource[1].Hygiene -= 1;
+                }
+                else if (FairTradeButton[1].sprite == FoodIcon)
+                {
+                    houseObject.Ressource[0].Food += 1;
+                    houseObject.Ressource[1].Food -= 1;
+                }
+
                 break;
 
             case 2:
-                houseObject.Ressource[Num].Toiletpaper += Trader2[0]; //TpAmount
+                houseObject.Ressource[2].Toiletpaper += Trader2[0]; //TpAmount
+                houseObject.Ressource[0].Toiletpaper -= Trader2[0];
+                //PlayerGiveRessources(Trader2[0], 0, 0);
 
-                PlayerGiveRessources(Trader2[0], 0, 0);
+                if (FairTradeButton[2].sprite == HygieneIcon)
+                {
+                    houseObject.Ressource[0].Hygiene += 1;
+                    houseObject.Ressource[2].Hygiene -= 1;
+                }
+                else if (FairTradeButton[2].sprite == FoodIcon)
+                {
+                    houseObject.Ressource[0].Food += 1;
+                    houseObject.Ressource[2].Food -= 1;
+                }
+
                 break;
 
             case 3:
-                houseObject.Ressource[Num].Toiletpaper += Trader3[0]; //TpAmount
+                houseObject.Ressource[3].Toiletpaper += Trader3[0]; //TpAmount
+                houseObject.Ressource[0].Toiletpaper -= Trader3[0];
+                //PlayerGiveRessources(Trader3[0], 0, 0);
 
-                PlayerGiveRessources(Trader3[0], 0, 0);
+                if (FairTradeButton[3].sprite == HygieneIcon)
+                {
+                    houseObject.Ressource[0].Hygiene += 1;
+                    houseObject.Ressource[3].Hygiene -= 1;
+                }
+                else if (FairTradeButton[3].sprite == FoodIcon)
+                {
+                    houseObject.Ressource[0].Food += 1;
+                    houseObject.Ressource[3].Food -= 1;
+                }
+
                 break;
 
             case 4:
-                houseObject.Ressource[Num].Toiletpaper += Trader4[0]; //TpAmount
+                houseObject.Ressource[4].Toiletpaper += Trader4[0]; //TpAmount
+                houseObject.Ressource[0].Toiletpaper -= Trader4[0];
+                //PlayerGiveRessources(Trader4[0], 0, 0);
 
-                PlayerGiveRessources(Trader4[0], 0, 0);
+                if (FairTradeButton[4].sprite == HygieneIcon)
+                {
+                    houseObject.Ressource[0].Hygiene += 1;
+                    houseObject.Ressource[4].Hygiene -= 1;
+                }
+                else if (FairTradeButton[4].sprite == FoodIcon)
+                {
+                    houseObject.Ressource[0].Food += 1;
+                    houseObject.Ressource[4].Food -= 1;
+                }
+
                 break;
 
             default:
@@ -213,10 +237,13 @@ public class TradeSystem : MonoBehaviour
         UpdateRessourceDescriptionText(0, houseObject.Ressource[0].Toiletpaper, houseObject.Ressource[0].Hygiene, houseObject.Ressource[0].Food);
         UpdateRessourceDescriptionText(Num, houseObject.Ressource[Num].Toiletpaper, houseObject.Ressource[Num].Hygiene, houseObject.Ressource[Num].Food);
 
+        //StartCoroutine(PlaySoundOnce(ClickSound));
+        StartCoroutine(PlaySoundOnce(ClickSound));
 
-        // restartTrade - Different Time(?)
+        // restartTrade - Different Time
+        StartCoroutine(FadeScreenToggle(false));
         tradePerDay--;
-        ChangeToTrade(false);
+        buttonManager.ChangeToTrade(false);
         ChangeDaytime();
     }
 
@@ -225,27 +252,76 @@ public class TradeSystem : MonoBehaviour
         switch (Num)
         {
             case 1:
-                houseObject.Ressource[1].Hygiene += Trader1[1]; //TpAmount
+                houseObject.Ressource[1].Hygiene += Trader1[1]; //HgAmount
+                houseObject.Ressource[0].Hygiene -= Trader1[1];
+                //PlayerGiveRessources(0, Trader1[1], 0);
 
-                PlayerGiveRessources(0, Trader1[1], 0);
+                if (FairTradeButton[0].sprite == ToilettpaperIcon)
+                {
+                    houseObject.Ressource[0].Toiletpaper += 1;
+                    houseObject.Ressource[1].Toiletpaper -= 1;
+                }
+                else if (FairTradeButton[0].sprite == FoodIcon)
+                {
+                    houseObject.Ressource[0].Food += 1;
+                    houseObject.Ressource[1].Food -= 1;
+                }
+
                 break;
 
             case 2:
-                houseObject.Ressource[2].Hygiene += Trader2[1]; //TpAmount
+                houseObject.Ressource[2].Hygiene += Trader2[1]; //HgAmount
+                houseObject.Ressource[0].Hygiene -= Trader2[1];
 
-                PlayerGiveRessources(0, Trader2[1], 0);
+                //PlayerGiveRessources(0, Trader2[1], 0);
+
+                if (FairTradeButton[1].sprite == ToilettpaperIcon)
+                {
+                    houseObject.Ressource[0].Toiletpaper += 1;
+                    houseObject.Ressource[2].Toiletpaper -= 1;
+                }
+                else if (FairTradeButton[1].sprite == FoodIcon)
+                {
+                    houseObject.Ressource[0].Food += 1;
+                    houseObject.Ressource[2].Food -= 1;
+                }
+
                 break;
 
             case 3:
-                houseObject.Ressource[3].Hygiene += Trader3[1]; //TpAmount
+                houseObject.Ressource[3].Hygiene += Trader3[1]; //HgAmount
+                houseObject.Ressource[0].Hygiene -= Trader3[1];
+                //PlayerGiveRessources(0, Trader3[1], 0);
 
-                PlayerGiveRessources(0, Trader3[1], 0);
+                if (FairTradeButton[2].sprite == ToilettpaperIcon)
+                {
+                    houseObject.Ressource[0].Toiletpaper += 1;
+                    houseObject.Ressource[3].Toiletpaper -= 1;
+                }
+                else if (FairTradeButton[2].sprite == FoodIcon)
+                {
+                    houseObject.Ressource[0].Food += 1;
+                    houseObject.Ressource[3].Food -= 1;
+                }
+
                 break;
 
             case 4:
-                houseObject.Ressource[4].Hygiene += Trader4[1]; //TpAmount
+                houseObject.Ressource[4].Hygiene += Trader4[1]; //HgAmount
+                houseObject.Ressource[0].Hygiene -= Trader4[1];
+                //PlayerGiveRessources(0, Trader4[1], 0);
 
-                PlayerGiveRessources(0, Trader4[1], 0);
+                if (FairTradeButton[3].sprite == ToilettpaperIcon)
+                {
+                    houseObject.Ressource[0].Toiletpaper += 1;
+                    houseObject.Ressource[4].Toiletpaper -= 1;
+                }
+                else if (FairTradeButton[3].sprite == FoodIcon)
+                {
+                    houseObject.Ressource[0].Food += 1;
+                    houseObject.Ressource[4].Food -= 1;
+                }
+
                 break;
 
             default:
@@ -254,10 +330,13 @@ public class TradeSystem : MonoBehaviour
         UpdateRessourceDescriptionText(0, houseObject.Ressource[0].Toiletpaper, houseObject.Ressource[0].Hygiene, houseObject.Ressource[0].Food);
         UpdateRessourceDescriptionText(Num, houseObject.Ressource[Num].Toiletpaper, houseObject.Ressource[Num].Hygiene, houseObject.Ressource[Num].Food);
 
+        //StartCoroutine(PlaySoundOnce(ClickSound));
+        StartCoroutine(PlaySoundOnce(ClickSound));
 
-        // restartTrade - Different Time(?)
+        // restartTrade - Different Time
+        StartCoroutine(FadeScreenToggle(false));
         tradePerDay--;
-        ChangeToTrade(false);
+        buttonManager.ChangeToTrade(false);
         ChangeDaytime();
     }
 
@@ -266,27 +345,75 @@ public class TradeSystem : MonoBehaviour
         switch (Num)
         {
             case 1:
-                houseObject.Ressource[1].Food += Trader1[2]; //TpAmount
+                houseObject.Ressource[1].Food += Trader1[2]; //FdAmount
+                houseObject.Ressource[0].Food -= Trader1[2];
+                //PlayerGiveRessources(0, 0, Trader1[2]);
 
-                PlayerGiveRessources(0, 0, Trader1[2]);
+                if (FairTradeButton[0].sprite == ToilettpaperIcon)
+                {
+                    houseObject.Ressource[0].Toiletpaper += 1;
+                    houseObject.Ressource[1].Toiletpaper -= 1;
+                }
+                else if (FairTradeButton[0].sprite == HygieneIcon)
+                {
+                    houseObject.Ressource[0].Hygiene += 1;
+                    houseObject.Ressource[1].Hygiene -= 1;
+                }
+
                 break;
 
             case 2:
-                houseObject.Ressource[2].Food += Trader2[2]; //TpAmount
+                houseObject.Ressource[2].Food += Trader2[2]; //FdAmount
+                houseObject.Ressource[0].Food -= Trader2[2];
+                //PlayerGiveRessources(0, 0, Trader2[2]);
 
-                PlayerGiveRessources(0, 0, Trader2[2]);
+                if (FairTradeButton[1].sprite == ToilettpaperIcon)
+                {
+                    houseObject.Ressource[0].Toiletpaper += 1;
+                    houseObject.Ressource[2].Toiletpaper -= 1;
+                }
+                else if (FairTradeButton[1].sprite == HygieneIcon)
+                {
+                    houseObject.Ressource[0].Hygiene += 1;
+                    houseObject.Ressource[2].Hygiene -= 1;
+                }
+
                 break;
 
             case 3:
-                houseObject.Ressource[3].Food += Trader3[2]; //TpAmount
+                houseObject.Ressource[3].Food += Trader3[2]; //FdAmount
+                houseObject.Ressource[0].Food -= Trader3[2];
+                //PlayerGiveRessources(0, 0, Trader3[2]);
 
-                PlayerGiveRessources(0, 0, Trader3[2]);
+                if (FairTradeButton[2].sprite == ToilettpaperIcon)
+                {
+                    houseObject.Ressource[0].Toiletpaper += 1;
+                    houseObject.Ressource[3].Toiletpaper -= 1;
+                }
+                else if (FairTradeButton[2].sprite == HygieneIcon)
+                {
+                    houseObject.Ressource[0].Hygiene += 1;
+                    houseObject.Ressource[3].Hygiene -= 1;
+                }
+
                 break;
 
             case 4:
-                houseObject.Ressource[4].Food += Trader4[2]; //TpAmount
+                houseObject.Ressource[4].Food += Trader4[2]; //FdAmount
+                houseObject.Ressource[0].Food -= Trader4[2];
+                //PlayerGiveRessources(0, 0, Trader4[2]);
 
-                PlayerGiveRessources(0, 0, Trader4[2]);
+                if (FairTradeButton[3].sprite == ToilettpaperIcon)
+                {
+                    houseObject.Ressource[0].Toiletpaper += 1;
+                    houseObject.Ressource[4].Toiletpaper -= 1;
+                }
+                else if (FairTradeButton[3].sprite == HygieneIcon)
+                {
+                    houseObject.Ressource[0].Hygiene += 1;
+                    houseObject.Ressource[4].Hygiene -= 1;
+                }
+
                 break;
 
             default:
@@ -295,10 +422,13 @@ public class TradeSystem : MonoBehaviour
         UpdateRessourceDescriptionText(0, houseObject.Ressource[0].Toiletpaper, houseObject.Ressource[0].Hygiene, houseObject.Ressource[0].Food);
         UpdateRessourceDescriptionText(Num, houseObject.Ressource[Num].Toiletpaper, houseObject.Ressource[Num].Hygiene, houseObject.Ressource[Num].Food);
 
+        //StartCoroutine(PlaySoundOnce(ClickSound));
+        StartCoroutine(PlaySoundOnce(ClickSound));
 
-        // restartTrade - Different Time(?)
+        // restartTrade - Different Time
+        StartCoroutine(FadeScreenToggle(false));
         tradePerDay--;
-        ChangeToTrade(false);
+        buttonManager.ChangeToTrade(false);
         ChangeDaytime();
     }
 
@@ -353,24 +483,6 @@ public class TradeSystem : MonoBehaviour
     //    ChangeDaytime();
     //}
 
-    public void NeighborOverviewCanvas(bool change)
-    {
-        if (change == true)
-        {
-            QuestionCanvas.gameObject.SetActive(false);
-            TradeView.gameObject.SetActive(false);
-            NeighborOverview.gameObject.SetActive(true);
-            FamilyStoryCanvas.gameObject.SetActive(false);
-        }
-        else if (change == false)
-        {
-            QuestionCanvas.gameObject.SetActive(true);
-            TradeView.gameObject.SetActive(false);
-            NeighborOverview.gameObject.SetActive(false);
-            FamilyStoryCanvas.gameObject.SetActive(false);
-        }
-
-    }
     #endregion
 
 
@@ -380,7 +492,7 @@ public class TradeSystem : MonoBehaviour
     {
         for (int i = 0; i < houseObject.Ressource.Length; i++)
         {
-            if (i < 0)
+            if (i > 0)
             {
                 houseObject.Ressource[i].Toiletpaper /= 2;
                 houseObject.Ressource[i].Hygiene /= 2;
@@ -391,9 +503,9 @@ public class TradeSystem : MonoBehaviour
             {
                 if (houseObject.Ressource[i].Toiletpaper > 1)
                     houseObject.Ressource[i].Toiletpaper -= 1;
-                if (houseObject.Ressource[i].Hygiene > 1) 
+                if (houseObject.Ressource[i].Hygiene > 1)
                     houseObject.Ressource[i].Hygiene -= 1;
-                if (houseObject.Ressource[i].Food > 1) 
+                if (houseObject.Ressource[i].Food > 1)
                     houseObject.Ressource[i].Food -= 1;
             }
 
@@ -402,14 +514,14 @@ public class TradeSystem : MonoBehaviour
         }
     }
 
-    public void PlayerGiveRessources(int Tp, int Hg, int Fd)
-    {
-        houseObject.Ressource[0].Toiletpaper -= Tp;
-        houseObject.Ressource[0].Hygiene -= Hg;
-        houseObject.Ressource[0].Food -= Fd;
+    //public void PlayerGiveRessources(int Tp, int Hg, int Fd)
+    //{
+    //    houseObject.Ressource[0].Toiletpaper -= Tp;
+    //    houseObject.Ressource[0].Hygiene -= Hg;
+    //    houseObject.Ressource[0].Food -= Fd;
 
-        UpdateRessourceDescriptionText(0, Tp, Hg, Fd);
-    }
+    //    UpdateRessourceDescriptionText(0, Tp, Hg, Fd);
+    //}
 
     public void UpdateRessourceDescriptionText(int Num, int Tp, int Hg, int Fd)
     {
@@ -436,14 +548,49 @@ public class TradeSystem : MonoBehaviour
         houseObject.Ressource[0].Toiletpaper += 3;
         houseObject.Ressource[0].Hygiene += 3;
         houseObject.Ressource[0].Food += 3;
-        Debug.Log("DELIVERY !");
+
+        Debug.Log("LoadVideo");
+        StartCoroutine(StartVideo());
+        //StartCoroutine(PlaySoundOnce(DeliverySound));
+
+        //if (weekdays == 0)
+        //{
+        //    StartCoroutine(ShowCustomText("The delivery service makes their round in your area every Monday. As you’re the only one not immediately at risk, the responsibility to distribute the resources rests on you."));
+        //}
+        //else
+        //    StartCoroutine(ShowDeliveryText());
     }
 
-    // changeDay -> Sound, animation
+    //IEnumerator ShowDeliveryText()
+    //{
+    //    int randText = Random.Range(0, 2);
+
+    //    switch (randText)
+    //    {
+    //        case 1:
+    //            DeliverText.SetActive(true);
+    //            DeliverText.GetComponentInChildren<TMP_Text>().text = "Your weekly delivery has arrived.";
+    //            break;
+    //        case 2:
+    //            DeliverText.SetActive(true);
+    //            DeliverText.GetComponentInChildren<TMP_Text>().text = "Najor has placed your weekly delivery on your porch.It has been automatically added to your inventory.";
+    //            break;
+    //        default:
+    //            break;
+    //    }
+
+    //    yield return new WaitForSeconds(10f);
+    //    DeliverText.SetActive(false);
+    //}
+
+    // changeDay -> animation
     public void ChangeDay(int day)
     {
-        RessourceReduce();
+        if (day != 0)
+            RessourceReduce();
         weekdays += day;
+
+        StartCoroutine(PlaySoundOnce(DayBeginSound));
 
         switch (weekdays)
         {
@@ -482,7 +629,17 @@ public class TradeSystem : MonoBehaviour
 
             CheckWeekEnd();
         }
+            StartCoroutine(FadeScreenToggle(true));
+        
     }
+
+
+    // House stats Text ?
+    //public void CheckHouseStats()
+    //{
+    //    if (houseObject.Ressource[1].Toiletpaper < House1Limit ||
+    //        houseObject.Ressource[1].Hygiene < House1Limit) ;
+    //}
 
     //change dayTime (picture/animation) -> Sound?
     public void ChangeDaytime()
@@ -490,44 +647,101 @@ public class TradeSystem : MonoBehaviour
         if (tradePerDay == 3)
         {
             DayTimeText.text = "Morning";
+            DayBackground.SetActive(true);
+            EveningBackground.SetActive(false);
+            StartCoroutine(FadeScreenToggle(true));
 
             // change image/Gif
         }
         else if (tradePerDay == 2)
         {
             DayTimeText.text = "Afternoon";
+            DayBackground.SetActive(true);
+            EveningBackground.SetActive(false);
+            StartCoroutine(FadeScreenToggle(true));
 
             // change image/Gif
         }
         else if (tradePerDay == 1)
         {
             DayTimeText.text = "Evening";
+            DayBackground.SetActive(false);
+            EveningBackground.SetActive(true);
+            StartCoroutine(ShowCustomText("It’s getting late. I should go to bed soon."));
+            StartCoroutine(FadeScreenToggle(true));
+            StartCoroutine(PlaySoundOnce(DayEndSound));
 
             // change image/Gif
         }
         else
         {
+            StartCoroutine(FadeScreenToggle(false));
             ChangeDay(1);
             DayTimeText.text = "Morning";
+            DayBackground.SetActive(true);
+            EveningBackground.SetActive(false);
         }
     }
     #endregion
 
-    public void ChangeToTrade(bool trade)
+
+    #region Sounds&FadeScreen
+    public IEnumerator FadeScreenToggle(bool fadeIn)
     {
-        if (trade)
+        if (fadeIn)
         {
-            QuestionCanvas.gameObject.SetActive(false);
-            TradeView.gameObject.SetActive(true);
-            NeighborOverview.gameObject.SetActive(false);
-        }
-        else if (!trade)
-        {
+            FadeScreen.gameObject.SetActive(true);
+            FadeScreen.SetBool("FadeOut", false);
+            FadeScreen.SetBool("FadeIn", true);
+
             QuestionCanvas.gameObject.SetActive(true);
             TradeView.gameObject.SetActive(false);
             NeighborOverview.gameObject.SetActive(false);
+            FamilyStoryCanvas.gameObject.SetActive(false);
+
+            yield return new WaitForSeconds(5);
+            FadeScreen.SetBool("FadeIn", false);
+            FadeScreen.gameObject.SetActive(false);
+
+            if (!videoPlayer.isPlaying)
+            {
+                HandyCanvas.gameObject.SetActive(true);
+            }
+        }
+        else if (!fadeIn)
+        {
+            FadeScreen.gameObject.SetActive(true);
+            FadeScreen.SetBool("FadeIn", false);
+            FadeScreen.SetBool("FadeOut", true);
+
+            QuestionCanvas.gameObject.SetActive(false);
+            TradeView.gameObject.SetActive(false);
+            NeighborOverview.gameObject.SetActive(false);
+            FamilyStoryCanvas.gameObject.SetActive(false);
+
+            yield return new WaitForSeconds(5);
+            FadeScreen.SetBool("FadeOut", false);
+            FadeScreen.gameObject.SetActive(false);
+            HandyCanvas.gameObject.SetActive(false);
         }
     }
+
+    // plays sounds once
+    public IEnumerator PlaySoundOnce(AudioClip clipSrc)
+    {
+        AudioSource audioSrc = GetComponent<AudioSource>();
+
+        if (audioSrc.isPlaying)
+        {
+            yield return new WaitForSeconds(audioSrc.clip.length);
+            audioSrc.PlayOneShot(clipSrc);
+        }
+        else if (!audioSrc.isPlaying)
+            audioSrc.PlayOneShot(clipSrc);
+    }
+
+    #endregion
+
 
     #region Trade System & HouseState
     // Getting state and ressource amount of the houses
@@ -590,6 +804,57 @@ public class TradeSystem : MonoBehaviour
         }
     }
 
+    // defines if Player gets Hg or Fd back when Tp is needed
+    public void TradeHygieneFood(int houseNum)
+    {
+        int random = Random.Range(0, 2);
+
+        if (houseObject.Ressource[houseNum].Hygiene > houseObject.Ressource[houseNum].Food ||
+            houseObject.Ressource[houseNum].Hygiene == houseObject.Ressource[houseNum].Food && random == 0)
+        {
+            FairTradeButton[houseNum-1].sprite = HygieneIcon;
+        }
+        else if (houseObject.Ressource[houseNum].Food > houseObject.Ressource[houseNum].Hygiene ||
+            houseObject.Ressource[houseNum].Hygiene == houseObject.Ressource[houseNum].Food && random == 1)
+        {
+            FairTradeButton[houseNum-1].sprite = FoodIcon;
+        }
+    }
+
+    // defines if Player gets Tp or Fd back when Hg is needed
+    public void TradeToiletpaperFood(int houseNum)
+    {
+        int random = Random.Range(0, 2);
+
+        if (houseObject.Ressource[houseNum].Toiletpaper > houseObject.Ressource[houseNum].Food ||
+            houseObject.Ressource[houseNum].Toiletpaper == houseObject.Ressource[houseNum].Food && random == 0)
+        {
+            FairTradeButton[houseNum-1].sprite = ToilettpaperIcon;
+        }
+        else if (houseObject.Ressource[houseNum].Food > houseObject.Ressource[houseNum].Toiletpaper ||
+            houseObject.Ressource[houseNum].Toiletpaper == houseObject.Ressource[houseNum].Food && random == 1)
+        {
+            FairTradeButton[houseNum-1].sprite = FoodIcon;
+        }
+    }
+
+    // defines if Player gets Tp or Hg back when Fd is needed
+    public void TradeToiletpaperHygiene(int houseNum)
+    {
+        int random = Random.Range(0, 2);
+
+        if (houseObject.Ressource[houseNum].Toiletpaper > houseObject.Ressource[houseNum].Hygiene ||
+            houseObject.Ressource[houseNum].Toiletpaper == houseObject.Ressource[houseNum].Hygiene && random == 0)
+        {
+            FairTradeButton[houseNum-1].sprite = ToilettpaperIcon;
+        }
+        else if (houseObject.Ressource[houseNum].Hygiene > houseObject.Ressource[houseNum].Toiletpaper ||
+            houseObject.Ressource[houseNum].Toiletpaper == houseObject.Ressource[houseNum].Hygiene && random == 1)
+        {
+            FairTradeButton[houseNum-1].sprite = HygieneIcon;
+        }
+    }
+
     public void TradeRequest(int houseNum)
     {
         switch (houseNum)
@@ -610,10 +875,13 @@ public class TradeSystem : MonoBehaviour
                             TpAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Tp");
                         }
+
+                        TradeHygieneFood(1);
+
                         ToiletpaperText[0].text = TpAmount.ToString();
-                        DTpText[0].gameObject.SetActive(true);
-                        DHgText[0].gameObject.SetActive(false);
-                        DFdText[0].gameObject.SetActive(false);
+                        ToiletpaperText[0].gameObject.SetActive(true);
+                        HygieneText[0].gameObject.SetActive(false);
+                        FoodText[0].gameObject.SetActive(false);
                         break;
 
                     case 2:
@@ -627,14 +895,17 @@ public class TradeSystem : MonoBehaviour
                             HgAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Hg");
                         }
-                        HygienText[0].text = HgAmount.ToString();
-                        DTpText[0].gameObject.SetActive(false);
-                        DHgText[0].gameObject.SetActive(true);
-                        DFdText[0].gameObject.SetActive(false);
+
+                        TradeToiletpaperFood(1);
+
+                        HygieneText[0].text = HgAmount.ToString();
+                        ToiletpaperText[0].gameObject.SetActive(false);
+                        HygieneText[0].gameObject.SetActive(true);
+                        FoodText[0].gameObject.SetActive(false);
                         break;
 
                     case 3:
-                        if (houseObject.Ressource[1].Hygiene < House1Limit)
+                        if (houseObject.Ressource[1].Food < House1Limit)
                         {
                             FoodAmount = GetRandomRessourceCount(2, houseObject.Ressource[0].Food);
                             //Debug.Log("1: HighTrade - Food");
@@ -644,16 +915,18 @@ public class TradeSystem : MonoBehaviour
                             FoodAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Food");
                         }
+
+                        TradeToiletpaperHygiene(1);
+
                         FoodText[0].text = FoodAmount.ToString();
-                        DTpText[0].gameObject.SetActive(false);
-                        DHgText[0].gameObject.SetActive(false);
-                        DFdText[0].gameObject.SetActive(true);
+                        ToiletpaperText[0].gameObject.SetActive(false);
+                        HygieneText[0].gameObject.SetActive(false);
+                        FoodText[0].gameObject.SetActive(true);
                         break;
 
                     default:
                         break;
                 }
-
                 Trader1[0] = TpAmount;
                 Trader1[1] = HgAmount;
                 Trader1[2] = FoodAmount;
@@ -676,10 +949,13 @@ public class TradeSystem : MonoBehaviour
                             TpAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Tp");
                         }
+
+                        TradeHygieneFood(2);
+
                         ToiletpaperText[1].text = TpAmount.ToString();
-                        DTpText[1].gameObject.SetActive(true);
-                        DHgText[1].gameObject.SetActive(false);
-                        DFdText[1].gameObject.SetActive(false);
+                        ToiletpaperText[1].gameObject.SetActive(true);
+                        HygieneText[1].gameObject.SetActive(false);
+                        FoodText[1].gameObject.SetActive(false);
                         break;
 
                     case 2:
@@ -693,14 +969,17 @@ public class TradeSystem : MonoBehaviour
                             HgAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Hg");
                         }
-                        HygienText[1].text = HgAmount.ToString();
-                        DTpText[1].gameObject.SetActive(false);
-                        DHgText[1].gameObject.SetActive(true);
-                        DFdText[1].gameObject.SetActive(false);
+
+                        TradeToiletpaperFood(2);
+
+                        this.HygieneText[1].text = HgAmount.ToString();
+                        ToiletpaperText[1].gameObject.SetActive(false);
+                        HygieneText[1].gameObject.SetActive(true);
+                        FoodText[1].gameObject.SetActive(false);
                         break;
 
                     case 3:
-                        if (houseObject.Ressource[2].Hygiene < House2Limit)
+                        if (houseObject.Ressource[2].Food < House2Limit)
                         {
                             FoodAmount = GetRandomRessourceCount(2, houseObject.Ressource[0].Food);
                             //Debug.Log("1: HighTrade - Food");
@@ -710,20 +989,21 @@ public class TradeSystem : MonoBehaviour
                             FoodAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Food");
                         }
+
+                        TradeToiletpaperHygiene(2);
+
                         FoodText[1].text = FoodAmount.ToString();
-                        DTpText[1].gameObject.SetActive(false);
-                        DHgText[1].gameObject.SetActive(false);
-                        DFdText[1].gameObject.SetActive(true);
+                        ToiletpaperText[1].gameObject.SetActive(false);
+                        HygieneText[1].gameObject.SetActive(false);
+                        FoodText[1].gameObject.SetActive(true);
                         break;
 
                     default:
                         break;
                 }
-
                 Trader2[0] = TpAmount;
                 Trader2[1] = HgAmount;
                 Trader2[2] = FoodAmount;
-
                 break;
 
             case 3:
@@ -742,10 +1022,13 @@ public class TradeSystem : MonoBehaviour
                             TpAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Tp");
                         }
+
+                        TradeHygieneFood(3);
+
                         ToiletpaperText[2].text = TpAmount.ToString();
-                        DTpText[2].gameObject.SetActive(true);
-                        DHgText[2].gameObject.SetActive(false);
-                        DFdText[2].gameObject.SetActive(false);
+                        ToiletpaperText[2].gameObject.SetActive(true);
+                        HygieneText[2].gameObject.SetActive(false);
+                        FoodText[2].gameObject.SetActive(false);
                         break;
 
                     case 2:
@@ -759,14 +1042,17 @@ public class TradeSystem : MonoBehaviour
                             HgAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Hg");
                         }
-                        HygienText[2].text = HgAmount.ToString();
-                        DTpText[2].gameObject.SetActive(false);
-                        DHgText[2].gameObject.SetActive(true);
-                        DFdText[2].gameObject.SetActive(false);
+
+                        TradeToiletpaperFood(3);
+
+                        HygieneText[2].text = HgAmount.ToString();
+                        ToiletpaperText[2].gameObject.SetActive(false);
+                        HygieneText[2].gameObject.SetActive(true);
+                        FoodText[2].gameObject.SetActive(false);
                         break;
 
                     case 3:
-                        if (houseObject.Ressource[3].Hygiene < House3Limit)
+                        if (houseObject.Ressource[3].Food < House3Limit)
                         {
                             FoodAmount = GetRandomRessourceCount(2, houseObject.Ressource[0].Food);
                             //Debug.Log("1: HighTrade - Food");
@@ -776,20 +1062,21 @@ public class TradeSystem : MonoBehaviour
                             FoodAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Food");
                         }
+
+                        TradeToiletpaperHygiene(3);
+
                         FoodText[2].text = FoodAmount.ToString();
-                        DTpText[2].gameObject.SetActive(true);
-                        DHgText[2].gameObject.SetActive(false);
-                        DFdText[2].gameObject.SetActive(true);
+                        ToiletpaperText[2].gameObject.SetActive(true);
+                        HygieneText[2].gameObject.SetActive(false);
+                        FoodText[2].gameObject.SetActive(true);
                         break;
 
                     default:
                         break;
                 }
-
                 Trader3[0] = TpAmount;
                 Trader3[1] = HgAmount;
                 Trader3[2] = FoodAmount;
-
                 break;
 
             case 4:
@@ -808,10 +1095,13 @@ public class TradeSystem : MonoBehaviour
                             TpAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Tp");
                         }
+
+                        TradeHygieneFood(4);
+
                         ToiletpaperText[3].text = TpAmount.ToString();
-                        DTpText[3].gameObject.SetActive(true);
-                        DHgText[3].gameObject.SetActive(false);
-                        DFdText[3].gameObject.SetActive(false);
+                        ToiletpaperText[3].gameObject.SetActive(true);
+                        HygieneText[3].gameObject.SetActive(false);
+                        FoodText[3].gameObject.SetActive(false);
                         break;
 
                     case 2:
@@ -825,14 +1115,17 @@ public class TradeSystem : MonoBehaviour
                             HgAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Hg");
                         }
-                        HygienText[3].text = HgAmount.ToString();
-                        DTpText[3].gameObject.SetActive(false);
-                        DHgText[3].gameObject.SetActive(true);
-                        DFdText[3].gameObject.SetActive(false);
+
+                        TradeToiletpaperFood(4);
+
+                        HygieneText[3].text = HgAmount.ToString();
+                        ToiletpaperText[3].gameObject.SetActive(false);
+                        HygieneText[3].gameObject.SetActive(true);
+                        FoodText[3].gameObject.SetActive(false);
                         break;
 
                     case 3:
-                        if (houseObject.Ressource[4].Hygiene < House4Limit)
+                        if (houseObject.Ressource[4].Food < House4Limit)
                         {
                             FoodAmount = GetRandomRessourceCount(2, houseObject.Ressource[0].Food);
                             //Debug.Log("1: HighTrade - Food");
@@ -842,20 +1135,21 @@ public class TradeSystem : MonoBehaviour
                             FoodAmount = GetRandomRessourceCount(0, 2);
                             //Debug.Log("1: LowTrade - Food");
                         }
+
+                        TradeToiletpaperHygiene(4);
+
                         FoodText[3].text = FoodAmount.ToString();
-                        DTpText[3].gameObject.SetActive(false);
-                        DHgText[3].gameObject.SetActive(false);
-                        DFdText[3].gameObject.SetActive(true);
+                        ToiletpaperText[3].gameObject.SetActive(false);
+                        HygieneText[3].gameObject.SetActive(false);
+                        FoodText[3].gameObject.SetActive(true);
                         break;
 
                     default:
                         break;
                 }
-
                 Trader4[0] = TpAmount;
                 Trader4[1] = HgAmount;
                 Trader4[2] = FoodAmount;
-
                 break;
 
             default:
@@ -876,14 +1170,39 @@ public class TradeSystem : MonoBehaviour
             DesHgText[Num].gameObject.SetActive(false);
             DesFoodText[Num].gameObject.SetActive(false);
 
-            ButtonText[Num].gameObject.SetActive(false);
+            //ButtonText[Num].gameObject.SetActive(false);
 
             houseObject.Ressource[Num].Dead = true;
 
+            deadCount++;
+
+            if (houseObject.Ressource[1].Dead)
+            {
+                StartCoroutine(ShowCustomText("Waltraud Residence ran out of resources."));
+            }
+            else if (houseObject.Ressource[2].Dead)
+            {
+                StartCoroutine(ShowCustomText("Kröger Residence ran out of resources."));
+            }
+            else if (houseObject.Ressource[3].Dead)
+            {
+                StartCoroutine(ShowCustomText(" Roi Residence ran out of resources."));
+            }
+            else if (houseObject.Ressource[4].Dead)
+            {
+                StartCoroutine(ShowCustomText("Von Butz Residence ran out of resources."));
+            }
+
+            if (deadCount >= 4)
+            {
+                Debug.Log("GAME OVER!");
+                SceneManager.LoadScene("Endscreen", LoadSceneMode.Single);
+            }
+
             if (Num == 0)
             {
-                SceneManager.LoadScene("Endscreen", LoadSceneMode.Single);
                 Debug.Log("GAME OVER!");
+                SceneManager.LoadScene("Endscreen", LoadSceneMode.Single);
             }
         }
         else
@@ -911,8 +1230,33 @@ public class TradeSystem : MonoBehaviour
         return Ressource;
     }
 
-    public void BackToMenu()
+    IEnumerator ShowCustomText(string text)
     {
-        SceneManager.LoadScene("EndScreen", LoadSceneMode.Single);
+        DeliverText.SetActive(true);
+        DeliverText.GetComponentInChildren<TMP_Text>().text = text;
+        yield return new WaitForSeconds(8f);
+        DeliverText.SetActive(false);
+    }
+
+    IEnumerator StartVideo()
+    {
+        HandyCanvas.gameObject.SetActive(false);
+        VideoRawImage.gameObject.SetActive(true);
+        mainAudio.Stop();
+        videoPlayer.Prepare();
+        WaitForSeconds wait = new WaitForSeconds(1);
+        while (!videoPlayer.isPrepared)
+        {
+            yield return wait;
+            break;
+        }
+        VideoRawImage.texture = videoPlayer.texture;
+        videoPlayer.Play();
+        videoAudio.Play();
+
+        yield return new WaitForSeconds(26);
+        mainAudio.Play();
+        VideoRawImage.gameObject.SetActive(false);
+        HandyCanvas.gameObject.SetActive(true);
     }
 }

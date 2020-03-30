@@ -17,7 +17,7 @@ MonoBehaviour:
     Toiletpaper: 6
     Hygiene: 5
     Food: 6
-    Dead: 1
+    Dead: 0
   - houseNumber: 1
     Toiletpaper: 2
     Hygiene: 3
